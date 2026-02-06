@@ -122,10 +122,13 @@
         }
         @keyframes flash {
             0% { background-color: #f39c12; color: #000; }
-            100% { background-color: transparent; color: inherit; }
+            100% { background-color: #3d2914; color: inherit; }
         }
         .flash {
-            animation: flash 0.6s ease-out;
+            animation: flash 1.5s ease-out forwards;
+        }
+        .changed {
+            background-color: #3d2914;
         }
         @media (max-width: 900px) {
             .container {
@@ -224,6 +227,7 @@
     <script>
         let btcData = [];
         let previousValues = {};
+        let changedKeys = new Set();
 
         // Populate APR dropdown
         const aprSelect = document.getElementById('liquidation-apr');
@@ -426,15 +430,21 @@
                 } else if (row.type === 'empty') {
                     html += `<tr><td>&nbsp;</td><td></td><td></td></tr>`;
                 } else if (row.type === 'cvl-ltv') {
-                    const cvlChanged = previousValues[row.cvlKey] && previousValues[row.cvlKey] !== row.cvl;
-                    const ltvChanged = previousValues[row.ltvKey] && previousValues[row.ltvKey] !== row.ltv;
-                    const cvlFlash = cvlChanged ? ' class="flash"' : '';
-                    const ltvFlash = ltvChanged ? ' class="flash"' : '';
-                    html += `<tr class="output-highlight"><td>${row.label}</td><td${cvlFlash}>${row.cvl}</td><td${ltvFlash}>${row.ltv}</td></tr>`;
+                    const cvlJustChanged = previousValues[row.cvlKey] && previousValues[row.cvlKey] !== row.cvl;
+                    const ltvJustChanged = previousValues[row.ltvKey] && previousValues[row.ltvKey] !== row.ltv;
+                    if (cvlJustChanged) changedKeys.add(row.cvlKey);
+                    if (ltvJustChanged) changedKeys.add(row.ltvKey);
+                    const cvlClass = cvlJustChanged ? 'flash' : (changedKeys.has(row.cvlKey) ? 'changed' : '');
+                    const ltvClass = ltvJustChanged ? 'flash' : (changedKeys.has(row.ltvKey) ? 'changed' : '');
+                    const cvlAttr = cvlClass ? ` class="${cvlClass}"` : '';
+                    const ltvAttr = ltvClass ? ` class="${ltvClass}"` : '';
+                    html += `<tr class="output-highlight"><td>${row.label}</td><td${cvlAttr}>${row.cvl}</td><td${ltvAttr}>${row.ltv}</td></tr>`;
                 } else {
-                    const changed = previousValues[row.key] && previousValues[row.key] !== row.value;
-                    const flashClass = changed ? ' class="flash"' : '';
-                    html += `<tr><td>${row.field}</td><td${flashClass} colspan="2">${row.value}</td></tr>`;
+                    const justChanged = previousValues[row.key] && previousValues[row.key] !== row.value;
+                    if (justChanged) changedKeys.add(row.key);
+                    const cellClass = justChanged ? 'flash' : (changedKeys.has(row.key) ? 'changed' : '');
+                    const cellAttr = cellClass ? ` class="${cellClass}"` : '';
+                    html += `<tr><td>${row.field}</td><td${cellAttr} colspan="2">${row.value}</td></tr>`;
                 }
             }
             html += '</tbody></table>';
