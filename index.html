@@ -12,8 +12,8 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background: #f5f5f5;
-            color: #333;
+            background: #1a1a2e;
+            color: #e0e0e0;
         }
         .container {
             display: flex;
@@ -22,8 +22,8 @@
         .sidebar {
             width: 380px;
             padding: 35px;
-            background: #fff;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            background: #16213e;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
         }
         .main {
             flex: 1;
@@ -32,30 +32,31 @@
         }
         h1 {
             margin-top: 0;
-            color: #2c3e50;
+            color: #f39c12;
             font-size: 1.8em;
         }
         h2 {
             font-size: 0.9em;
-            color: #555;
+            color: #a0a0a0;
             margin: 15px 0 8px 0;
             font-weight: 600;
         }
         p {
-            color: #666;
+            color: #888;
             line-height: 1.5;
         }
         select, input[type="number"] {
             width: 100%;
             padding: 10px 12px;
-            border: 1px solid #ddd;
+            border: 1px solid #333;
             border-radius: 4px;
             font-size: 14px;
-            background: #fff;
+            background: #0f0f23;
+            color: #e0e0e0;
         }
         select:focus, input:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: #f39c12;
         }
         .radio-group {
             display: flex;
@@ -68,55 +69,63 @@
             gap: 6px;
             cursor: pointer;
             font-size: 14px;
+            color: #e0e0e0;
         }
         .section-divider {
-            border-top: 1px solid #eee;
+            border-top: 1px solid #333;
             margin: 25px 0;
             padding-top: 10px;
         }
         table {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             border-collapse: collapse;
-            background: #fff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: #16213e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
             border-radius: 4px;
             overflow: hidden;
         }
         th, td {
             padding: 12px 16px;
             text-align: left;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #1a1a2e;
         }
         th {
-            background: #f8f9fa;
+            background: #0f0f23;
             font-weight: 600;
-            color: #555;
+            color: #888;
         }
         tr:last-child td {
             border-bottom: none;
         }
         tr.section-header td {
-            background: #e9ecef;
+            background: #0f3460;
             font-weight: 600;
-            color: #2c3e50;
+            color: #f39c12;
         }
         tr.subsection-header td {
-            background: #f1f3f5;
+            background: #1a1a2e;
             font-weight: 600;
-            color: #495057;
+            color: #3498db;
         }
         tr.highlight td {
-            background: #fff3cd;
+            background: #3d2914;
         }
         tr.output-highlight td {
-            background: #d4edda;
+            background: #1e4620;
             font-weight: 500;
         }
         .loading {
             text-align: center;
             padding: 50px;
-            color: #666;
+            color: #888;
+        }
+        @keyframes flash {
+            0% { background-color: #f39c12; color: #000; }
+            100% { background-color: transparent; color: inherit; }
+        }
+        .flash {
+            animation: flash 0.6s ease-out;
         }
         @media (max-width: 900px) {
             .container {
@@ -214,6 +223,7 @@
 
     <script>
         let btcData = [];
+        let previousValues = {};
 
         // Populate APR dropdown
         const aprSelect = document.getElementById('liquidation-apr');
@@ -343,63 +353,102 @@
             const initialCVL = 1 + apr + mcToLiqLoss + initToMcLoss;
             const initialLTV = 1 / initialCVL;
 
+            // Store current values for comparison
+            const currentValues = {
+                apr: formatPct(apr),
+                mcToLiqPeriod,
+                mcToLiqCL,
+                mcToLiqHorizon: mcToLiqHorizon + ' samples',
+                mcToLiqMethod: mcToLiqUseVar ? 'VaR' : 'CVaR',
+                mcToLiqVol: formatPct(mcToLiqVol),
+                initToMcPeriod,
+                initToMcCL,
+                initToMcHorizon: initToMcHorizon + ' samples',
+                initToMcMethod: initToMcUseVar ? 'VaR' : 'CVaR',
+                initToMcVol: formatPct(initToMcVol),
+                initialCVL: formatPct(initialCVL, 0),
+                marginCallCVL: formatPct(marginCallCVL, 0),
+                liquidationCVL: formatPct(liquidationCVL, 0),
+                initialLTV: formatPct(initialLTV, 0),
+                marginCallLTV: formatPct(marginCallLTV, 0),
+                liquidationLTV: formatPct(liquidationLTV, 0),
+                mcVol: formatPct(mcToLiqVol),
+                mcVaR: formatPct(mcToLiqVaR),
+                mcCVaR: formatPct(mcToLiqCVaR),
+                mcLoss: formatPct(mcToLiqLoss),
+                initVol: formatPct(initToMcVol),
+                initVaR: formatPct(initToMcVaR),
+                initCVaR: formatPct(initToMcCVaR),
+                initLoss: formatPct(initToMcLoss),
+            };
+
             // Build output table
             const rows = [
-                { type: 'section', label: '-----= CVLs / LTVs Calculations =-----' },
-                { type: 'section', label: '-----= Inputs =-----' },
-                { field: 'Liquidation Recovery APR', value: formatPct(apr) },
+                { type: 'section', label: 'CVLs / LTVs Calculations' },
+                { type: 'section', label: 'Inputs' },
+                { field: 'Liquidation Recovery APR', value: currentValues.apr, key: 'apr' },
                 { type: 'empty' },
-                { field: 'Margin Call - Time Period', value: mcToLiqPeriod },
-                { field: 'Margin Call - Confidence Level', value: mcToLiqCL },
-                { field: 'Margin Call - Time Horizon', value: mcToLiqHorizon + ' samples' },
-                { field: 'Margin Call - Loss estimation using:', value: mcToLiqUseVar ? 'VaR' : 'CVaR' },
-                { field: 'Margin Call - Implied Volatility', value: formatPct(mcToLiqVol) },
+                { field: 'Margin Call - Time Period', value: currentValues.mcToLiqPeriod, key: 'mcToLiqPeriod' },
+                { field: 'Margin Call - Confidence Level', value: currentValues.mcToLiqCL, key: 'mcToLiqCL' },
+                { field: 'Margin Call - Time Horizon', value: currentValues.mcToLiqHorizon, key: 'mcToLiqHorizon' },
+                { field: 'Margin Call - Loss estimation using:', value: currentValues.mcToLiqMethod, key: 'mcToLiqMethod' },
+                { field: 'Margin Call - Implied Volatility', value: currentValues.mcToLiqVol, key: 'mcToLiqVol' },
                 { type: 'empty' },
-                { field: 'Initial - Time Period', value: initToMcPeriod },
-                { field: 'Initial - Confidence Level', value: initToMcCL },
-                { field: 'Initial - Time Horizon', value: initToMcHorizon + ' samples' },
-                { field: 'Initial - Loss estimation using:', value: initToMcUseVar ? 'VaR' : 'CVaR' },
-                { field: 'Initial - Implied Volatility', value: formatPct(initToMcVol) },
+                { field: 'Initial - Time Period', value: currentValues.initToMcPeriod, key: 'initToMcPeriod' },
+                { field: 'Initial - Confidence Level', value: currentValues.initToMcCL, key: 'initToMcCL' },
+                { field: 'Initial - Time Horizon', value: currentValues.initToMcHorizon, key: 'initToMcHorizon' },
+                { field: 'Initial - Loss estimation using:', value: currentValues.initToMcMethod, key: 'initToMcMethod' },
+                { field: 'Initial - Implied Volatility', value: currentValues.initToMcVol, key: 'initToMcVol' },
                 { type: 'empty' },
-                { type: 'section', label: '-----= Outputs =-----' },
-                { type: 'subsection', label: '-----= CVLs =-----' },
-                { field: 'Initial CVL', value: formatPct(initialCVL, 0), highlight: 'output' },
-                { field: 'Margin Call CVL', value: formatPct(marginCallCVL, 0), highlight: 'output' },
-                { field: 'Liquidation CVL', value: formatPct(liquidationCVL, 0), highlight: 'output' },
+                { type: 'section', label: 'Outputs' },
+                { type: 'cvl-ltv', label: 'Initial', cvl: currentValues.initialCVL, ltv: currentValues.initialLTV, cvlKey: 'initialCVL', ltvKey: 'initialLTV' },
+                { type: 'cvl-ltv', label: 'Margin Call', cvl: currentValues.marginCallCVL, ltv: currentValues.marginCallLTV, cvlKey: 'marginCallCVL', ltvKey: 'marginCallLTV' },
+                { type: 'cvl-ltv', label: 'Liquidation', cvl: currentValues.liquidationCVL, ltv: currentValues.liquidationLTV, cvlKey: 'liquidationCVL', ltvKey: 'liquidationLTV' },
                 { type: 'empty' },
-                { type: 'subsection', label: '-----= LTVs =-----' },
-                { field: 'Initial LTV', value: formatPct(initialLTV, 0), highlight: 'output' },
-                { field: 'Margin Call LTV', value: formatPct(marginCallLTV, 0), highlight: 'output' },
-                { field: 'Liquidation LTV', value: formatPct(liquidationLTV, 0), highlight: 'output' },
+                { type: 'section', label: 'Details' },
+                { field: 'Margin Call - Vol', value: currentValues.mcVol, key: 'mcVol' },
+                { field: 'Margin Call - VaR', value: currentValues.mcVaR, key: 'mcVaR' },
+                { field: 'Margin Call - CVaR', value: currentValues.mcCVaR, key: 'mcCVaR' },
+                { field: 'Margin Call - Expected Loss', value: currentValues.mcLoss, key: 'mcLoss' },
                 { type: 'empty' },
-                { type: 'subsection', label: '-----= Details =-----' },
-                { field: 'Margin Call - Vol', value: formatPct(mcToLiqVol) },
-                { field: 'Margin Call - VaR', value: formatPct(mcToLiqVaR) },
-                { field: 'Margin Call - CVaR', value: formatPct(mcToLiqCVaR) },
-                { field: 'Margin Call - Expected Loss', value: formatPct(mcToLiqLoss) },
-                { type: 'empty' },
-                { field: 'Initial - Vol', value: formatPct(initToMcVol) },
-                { field: 'Initial - VaR', value: formatPct(initToMcVaR) },
-                { field: 'Initial - CVaR', value: formatPct(initToMcCVaR) },
-                { field: 'Initial - Expected Loss', value: formatPct(initToMcLoss) },
+                { field: 'Initial - Vol', value: currentValues.initVol, key: 'initVol' },
+                { field: 'Initial - VaR', value: currentValues.initVaR, key: 'initVaR' },
+                { field: 'Initial - CVaR', value: currentValues.initCVaR, key: 'initCVaR' },
+                { field: 'Initial - Expected Loss', value: currentValues.initLoss, key: 'initLoss' },
             ];
 
-            let html = '<table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>';
+            let html = '<table><tbody>';
             for (const row of rows) {
                 if (row.type === 'section') {
-                    html += `<tr class="section-header"><td colspan="2">${row.label}</td></tr>`;
+                    html += `<tr class="section-header"><td colspan="3">${row.label}</td></tr>`;
                 } else if (row.type === 'subsection') {
-                    html += `<tr class="subsection-header"><td colspan="2">${row.label}</td></tr>`;
+                    html += `<tr class="subsection-header"><td colspan="3">${row.label}</td></tr>`;
                 } else if (row.type === 'empty') {
-                    html += `<tr><td>&nbsp;</td><td></td></tr>`;
+                    html += `<tr><td>&nbsp;</td><td></td><td></td></tr>`;
+                } else if (row.type === 'cvl-ltv') {
+                    const cvlChanged = previousValues[row.cvlKey] && previousValues[row.cvlKey] !== row.cvl;
+                    const ltvChanged = previousValues[row.ltvKey] && previousValues[row.ltvKey] !== row.ltv;
+                    const cvlFlash = cvlChanged ? ' class="flash"' : '';
+                    const ltvFlash = ltvChanged ? ' class="flash"' : '';
+                    html += `<tr class="output-highlight"><td>${row.label}</td><td${cvlFlash}>${row.cvl}</td><td${ltvFlash}>${row.ltv}</td></tr>`;
                 } else {
-                    const cls = row.highlight === 'output' ? ' class="output-highlight"' : '';
-                    html += `<tr${cls}><td>${row.field}</td><td>${row.value}</td></tr>`;
+                    const changed = previousValues[row.key] && previousValues[row.key] !== row.value;
+                    const flashClass = changed ? ' class="flash"' : '';
+                    html += `<tr><td>${row.field}</td><td${flashClass} colspan="2">${row.value}</td></tr>`;
                 }
             }
             html += '</tbody></table>';
 
+            // Add header row for outputs section
+            html = html.replace(
+                '<tr class="section-header"><td colspan="3">Outputs</td></tr>',
+                '<tr class="section-header"><td colspan="3">Outputs</td></tr><tr class="subsection-header"><td></td><td>CVL</td><td>LTV</td></tr>'
+            );
+
             document.getElementById('output').innerHTML = html;
+            
+            // Store values for next comparison
+            previousValues = { ...currentValues };
         }
 
         // Load data and setup
@@ -416,7 +465,7 @@
             })
             .catch(err => {
                 document.getElementById('output').innerHTML = 
-                    '<p style="color: red;">Error loading data: ' + err.message + '</p>';
+                    '<p style="color: #e74c3c;">Error loading data: ' + err.message + '</p>';
             });
     </script>
 </body>
